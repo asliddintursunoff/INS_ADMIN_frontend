@@ -1,17 +1,19 @@
 import { apiClient } from '@/lib/apiClient';
 import { SuperUser, GroupType, AcademicYear, MatrixData } from '@/types';
+import { SuperUserSchema } from '@/types/schemas';
+import { z } from 'zod';
 
 export const superUserService = {
   getSuperUsers: async (): Promise<SuperUser[]> => {
-    const response = await apiClient.get<SuperUser[]>('/superuser/super-users');
-    return response.data;
+    const response = await apiClient.get('/superuser/super-users');
+    return z.array(SuperUserSchema).parse(response.data);
   },
 
   getSuperUser: async (userId: string): Promise<SuperUser> => {
-    const response = await apiClient.get<SuperUser>(`/superuser/super-user`, {
+    const response = await apiClient.get(`/superuser/super-user`, {
       params: { user_id: userId },
     });
-    return response.data;
+    return SuperUserSchema.parse(response.data);
   },
 
   deleteSuperUser: async (userId: string): Promise<void> => {

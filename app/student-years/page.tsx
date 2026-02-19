@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminPanelService } from '@/services/adminPanelService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -10,10 +10,19 @@ import { Calendar, ChevronRight, GraduationCap } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 
 export default function StudentYearsPage() {
+  const queryClient = useQueryClient();
   const { data: years, isLoading, error } = useQuery({
     queryKey: ['student-years'],
     queryFn: adminPanelService.getStudentYears,
+    staleTime: 30 * 60 * 1000, // Student years are very stable
   });
+
+  const prefetchSubjects = (yearId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['subjects', yearId],
+      queryFn: () => adminPanelService.getSubjectsByStudentYear(yearId),
+    });
+  };
 
   return (
     <DashboardLayout>
@@ -44,8 +53,12 @@ export default function StudentYearsPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {years?.map((year) => (
-              <Link key={year.id} href={`/student-years/${year.id}/subjects`}>
+            {Array.isArray(years) && years.map((year) => (
+              <Link
+                key={year.id}
+                href={`/student-years/${year.id}/subjects`}
+                onMouseEnter={() => prefetchSubjects(year.id)}
+              >
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-100 hover:border-blue-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xl text-blue-700">{year.year_name}</CardTitle>

@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/apiClient';
 import { LoginResponse, SuperUser } from '@/types';
+import { SuperUserSchema } from '@/types/schemas';
 
 export const authService = {
   login: async (username: string, password: string): Promise<LoginResponse> => {
@@ -16,7 +17,7 @@ export const authService = {
   },
 
   getMe: async (): Promise<SuperUser> => {
-    const response = await apiClient.get<SuperUser>('/superuser/me');
-    return response.data;
+    const response = await apiClient.get('/superuser/me');
+    return SuperUserSchema.parse(response.data);
   },
 };

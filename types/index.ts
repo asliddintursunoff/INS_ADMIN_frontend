@@ -1,95 +1,30 @@
-export interface SuperUser {
-  id: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  telegram_id?: string;
-  is_root: boolean;
-}
+import { z } from 'zod';
+import {
+  MajorSchema,
+  ProfessorSchema,
+  SubjectSchema,
+  EnrollmentSchema,
+  StudentYearSchema,
+  SuperUserSchema,
+  AttendanceInfoSchema,
+  StudentEnrollmentDetailSchema,
+  AttendanceNotificationSchema
+} from './schemas';
+
+export type Major = z.infer<typeof MajorSchema>;
+export type Professor = z.infer<typeof ProfessorSchema>;
+export type Subject = z.infer<typeof SubjectSchema>;
+export type Enrollment = z.infer<typeof EnrollmentSchema>;
+export type StudentYear = z.infer<typeof StudentYearSchema>;
+export type SuperUser = z.infer<typeof SuperUserSchema>;
+export type AttendanceInfo = z.infer<typeof AttendanceInfoSchema>;
+export type StudentEnrollmentDetail = z.infer<typeof StudentEnrollmentDetailSchema>;
+export type AttendanceNotification = z.infer<typeof AttendanceNotificationSchema>;
 
 export interface LoginResponse {
   access_token: string;
   token_type: string;
 }
-
-export interface StudentYear {
-  id: string;
-  year_name: string;
-  starting_year: number;
-  graduation_year: number;
-}
-
-export interface Major {
-  id: string;
-  major_name: string;
-}
-
-export interface Professor {
-  name: string;
-}
-
-export interface Subject {
-  id: string;
-  short_name: string;
-  name: string;
-  majors: Major[];
-  professors: Professor[];
-}
-
-export interface Enrollment {
-  id: string;
-  student_id: string;
-  student_name: string;
-  telegram_id?: string;
-  phone?: string;
-  attendance_count: number;
-  absence_count: number;
-  late_count: number;
-  max_absence: number;
-  max_late: number;
-}
-
-export interface StudentEnrollmentDetail {
-  student_info: {
-    first_name: string;
-    last_name: string;
-    telegram_id?: string;
-  };
-  summary: {
-    attendance: number;
-    late: number;
-    absence: number;
-  };
-  exact_info: AttendanceInfo[];
-}
-
-export interface AttendanceInfo {
-  id: string;
-  date_of_week: string;
-  class_name: string;
-  status: 'attendance' | 'absence' | 'late';
-}
-
-export interface AttendanceNotification {
-  student_id: string;
-  first_name: string;
-  last_name: string;
-  group_name: string;
-  major: string;
-  st_year: string;
-  total_attendance: {
-    attendance: number;
-    absence: number;
-    late: number;
-  };
-  new_absence_date: string;
-  subject_name: string;
-  prof_name: string;
-  enrollment_id: string;
-  attendance_info_id: string;
-  seen?: boolean;
-}
-
 
 export enum GroupType {
   FULL_TIME = 'FULL_TIME',

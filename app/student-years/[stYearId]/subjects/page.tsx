@@ -1,7 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { adminPanelService } from '@/services/adminPanelService';
+import { attendanceService } from '@/services/attendanceService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useParams } from 'next/navigation';
 import { useState, useMemo } from 'react';
@@ -30,6 +31,7 @@ import {
 
 export default function SubjectsPage() {
   const params = useParams();
+  const queryClient = useQueryClient();
   const stYearId = params.stYearId as string;
   const [search, setSearch] = useState('');
   const [majorFilter, setMajorFilter] = useState('all');
@@ -44,7 +46,15 @@ export default function SubjectsPage() {
   const { data: subjects, isLoading } = useQuery({
     queryKey: ['subjects', stYearId],
     queryFn: () => adminPanelService.getSubjectsByStudentYear(stYearId),
+    placeholderData: keepPreviousData,
   });
+
+  const prefetchStudents = (subjectId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['students-in-subject', subjectId],
+      queryFn: () => attendanceService.getStudentsBySubject(subjectId),
+    });
+  };
 
   const majors = useMemo(() => {
     if (!subjects) return [];
@@ -128,10 +138,11 @@ export default function SubjectsPage() {
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSubjects.map((subject) => (
+            {Array.isArray(filteredSubjects) && filteredSubjects.map((subject) => (
               <Link
                 key={subject.id}
                 href={`/student-years/${stYearId}/subjects/${subject.id}/students`}
+                onMouseEnter={() => prefetchStudents(subject.id)}
               >
                 <Card className="hover:border-blue-500 transition-colors h-full">
                   <CardContent className="pt-6">

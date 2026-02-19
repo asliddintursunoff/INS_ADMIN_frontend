@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { notificationService, GetNotificationsParams } from '@/services/notificationService';
 import { AttendanceNotification } from '@/types';
 import { adminPanelService } from '@/services/adminPanelService';
@@ -73,6 +73,7 @@ export default function AttendanceNotificationsPage() {
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['notifications', params],
     queryFn: () => notificationService.getNotifications(params),
+    placeholderData: keepPreviousData,
   });
 
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
@@ -297,11 +298,17 @@ export default function AttendanceNotificationsPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-1 text-xs">
-                            <span className="text-green-600 font-bold">{n.total_attendance.attendance}</span>
+                            <span className="text-green-600 font-bold">
+                              {n.total_attendance?.attendance ?? 0}
+                            </span>
                             <span>/</span>
-                            <span className="text-red-600 font-bold">{n.total_attendance.absence}</span>
+                            <span className="text-red-600 font-bold">
+                              {n.total_attendance?.absence ?? 0}
+                            </span>
                             <span>/</span>
-                            <span className="text-amber-600 font-bold">{n.total_attendance.late}</span>
+                            <span className="text-amber-600 font-bold">
+                              {n.total_attendance?.late ?? 0}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

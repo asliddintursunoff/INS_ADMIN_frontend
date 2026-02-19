@@ -1,5 +1,7 @@
 import { apiClient } from '@/lib/apiClient';
 import { AttendanceNotification } from '@/types';
+import { AttendanceNotificationSchema } from '@/types/schemas';
+import { z } from 'zod';
 
 export interface GetNotificationsParams {
   st_year_id?: string;
@@ -9,10 +11,10 @@ export interface GetNotificationsParams {
 
 export const notificationService = {
   getNotifications: async (params: GetNotificationsParams): Promise<AttendanceNotification[]> => {
-    const response = await apiClient.get<AttendanceNotification[]>('/notifications/attendance', {
+    const response = await apiClient.get('/notifications/attendance', {
       params,
     });
-    return response.data;
+    return z.array(AttendanceNotificationSchema).parse(response.data);
   },
 
   markAsSeen: async (attendanceInfoId: string): Promise<void> => {

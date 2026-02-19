@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { attendanceService } from '@/services/attendanceService';
 import { adminPanelService } from '@/services/adminPanelService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -61,12 +61,14 @@ export default function StudentsInSubjectPage() {
     queryKey: ['students-in-subject', subjectId],
     queryFn: () => attendanceService.getStudentsBySubject(subjectId),
     enabled: !!subjectId,
+    placeholderData: keepPreviousData,
   });
 
   const students = useMemo(() => {
-    if (!enrollments) return [];
+    const list = Array.isArray(enrollments) ? enrollments : [];
+    if (list.length === 0) return [];
 
-    const grouped = enrollments.reduce((acc, curr) => {
+    const grouped = list.reduce((acc, curr) => {
       if (!acc[curr.student_id]) {
         acc[curr.student_id] = {
           student_id: curr.student_id,
@@ -94,8 +96,8 @@ export default function StudentsInSubjectPage() {
     }, {} as Record<string, {
       student_id: string;
       student_name: string;
-      telegram_id?: string;
-      phone?: string;
+      telegram_id: string | null | undefined;
+      phone: string | null | undefined;
       enrollments: Enrollment[];
       attendance_count: number;
       absence_count: number;
@@ -227,12 +229,12 @@ export default function StudentsInSubjectPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-xs">
-                            {student.attendance_count}
+                            {student.attendance_count ?? 0}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-bold text-xs">
-                            {student.late_count}
+                            {student.late_count ?? 0}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
