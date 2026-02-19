@@ -105,15 +105,15 @@ export function StudentEnrollmentModal({
             <div className="px-6 py-4 bg-slate-50 border-y grid grid-cols-3 gap-4">
               <div className="text-center p-3 bg-white rounded-lg border shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Attendance</p>
-                <p className="text-2xl font-bold text-green-600">{detail.summary.attendance}</p>
+                <p className="text-2xl font-bold text-green-600">{detail.summary?.attendance ?? 0}</p>
               </div>
               <div className="text-center p-3 bg-white rounded-lg border shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Absence</p>
-                <p className="text-2xl font-bold text-red-600">{detail.summary.absence}</p>
+                <p className="text-2xl font-bold text-red-600">{detail.summary?.absence ?? 0}</p>
               </div>
               <div className="text-center p-3 bg-white rounded-lg border shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Late</p>
-                <p className="text-2xl font-bold text-amber-600">{detail.summary.late}</p>
+                <p className="text-2xl font-bold text-amber-600">{detail.summary?.late ?? 0}</p>
               </div>
             </div>
 
@@ -127,8 +127,8 @@ export function StudentEnrollmentModal({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {detail.exact_info.map((info) => (
-                    <TableRow key={info.id}>
+                  {(Array.isArray(detail.exact_info) ? detail.exact_info : []).map((info) => (
+                    <TableRow key={info?.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />

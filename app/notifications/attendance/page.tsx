@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentEnrollmentModal } from '@/features/attendance/components/StudentEnrollmentModal';
+import { cn } from '@/lib/utils';
 import { CheckCircle2, Filter, RefreshCcw, Bell, Loader2, BellOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
@@ -159,21 +160,23 @@ export default function AttendanceNotificationsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <Breadcrumb className="mb-4">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Notifications</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Bell className="w-8 h-8 text-blue-600" />
-            Attendance Notifications
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Monitor and manage student absence alerts
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <Breadcrumb className="mb-4">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Notifications</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Bell className="w-8 h-8 text-blue-600" />
+              Attendance Notifications
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {Array.isArray(notifications) ? notifications.length : 0} students listed
+            </p>
+          </div>
         </div>
 
         <Card>
@@ -267,15 +270,20 @@ export default function AttendanceNotificationsPage() {
                       <TableHead>Group/Major</TableHead>
                       <TableHead>Subject/Prof</TableHead>
                       <TableHead className="text-center">Absence Date</TableHead>
-                      <TableHead className="text-center">Total (A/A/L)</TableHead>
+                      <TableHead className="text-center">Attendance</TableHead>
+                      <TableHead className="text-center">Absence</TableHead>
+                      <TableHead className="text-center">Late</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {notifications?.map((n) => (
+                    {(Array.isArray(notifications) ? notifications : []).map((n) => (
                       <TableRow
                         key={`${n.enrollment_id}-${n.attendance_info_id}`}
-                        className="cursor-pointer hover:bg-slate-50 transition-colors"
+                        className={cn(
+                          "cursor-pointer hover:bg-slate-50 transition-colors",
+                          (n.seen || seenIds.has(n.attendance_info_id)) && "opacity-50 grayscale-[0.5]"
+                        )}
                         onClick={() => setSelectedEnrollment({
                           id: n.enrollment_id,
                           name: `${n.first_name} ${n.last_name}`
@@ -296,20 +304,14 @@ export default function AttendanceNotificationsPage() {
                         <TableCell className="text-center">
                           {n.new_absence_date}
                         </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center gap-1 text-xs">
-                            <span className="text-green-600 font-bold">
-                              {n.total_attendance?.attendance ?? 0}
-                            </span>
-                            <span>/</span>
-                            <span className="text-red-600 font-bold">
-                              {n.total_attendance?.absence ?? 0}
-                            </span>
-                            <span>/</span>
-                            <span className="text-amber-600 font-bold">
-                              {n.total_attendance?.late ?? 0}
-                            </span>
-                          </div>
+                        <TableCell className="text-center text-green-600 font-bold">
+                          {n.total_attendance?.attendance ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center text-red-600 font-bold">
+                          {n.total_attendance?.absence ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center text-amber-600 font-bold">
+                          {n.total_attendance?.late ?? 0}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button

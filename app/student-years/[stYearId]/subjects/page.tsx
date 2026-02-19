@@ -57,22 +57,23 @@ export default function SubjectsPage() {
   };
 
   const majors = useMemo(() => {
-    if (!subjects) return [];
-    const allMajors = subjects.flatMap((s) => s.majors || []);
+    const list = Array.isArray(subjects) ? subjects : [];
+    const allMajors = list.flatMap((s) => (Array.isArray(s.majors) ? s.majors : []));
     const uniqueMajors = Array.from(
-      new Map(allMajors.map((m) => [m.id, m])).values()
-    );
+      new Map(allMajors.map((m) => [m?.id, m])).values()
+    ).filter(Boolean);
     return uniqueMajors;
   }, [subjects]);
 
   const filteredSubjects = useMemo(() => {
-    if (!subjects) return [];
-    return subjects.filter((subject) => {
+    const list = Array.isArray(subjects) ? subjects : [];
+    return list.filter((subject) => {
       const matchesSearch =
-        subject.name.toLowerCase().includes(search.toLowerCase()) ||
-        subject.short_name.toLowerCase().includes(search.toLowerCase());
+        (subject.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (subject.short_name || "").toLowerCase().includes(search.toLowerCase());
       const matchesMajor =
-        majorFilter === 'all' || subject.majors.some((m) => m.id === majorFilter);
+        majorFilter === 'all' ||
+        (Array.isArray(subject.majors) && subject.majors.some((m) => m?.id === majorFilter));
       return matchesSearch && matchesMajor;
     });
   }, [subjects, search, majorFilter]);

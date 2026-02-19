@@ -3,21 +3,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '@/services/authService';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useAuth(requireAuth = true) {
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ['me'],
     queryFn: authService.getMe,
     retry: false,
-    enabled: typeof window !== 'undefined' && !!localStorage.getItem('token'),
+    enabled: mounted && !!localStorage.getItem('token'),
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!mounted) return;
 
     const token = localStorage.getItem('token');
 
