@@ -48,8 +48,11 @@ export default function SubjectsPage() {
 
   const majors = useMemo(() => {
     if (!subjects) return [];
-    const allMajors = subjects.flatMap((s) => s.majors);
-    return Array.from(new Set(allMajors));
+    const allMajors = subjects.flatMap((s) => s.majors || []);
+    const uniqueMajors = Array.from(
+      new Map(allMajors.map((m) => [m.id, m])).values()
+    );
+    return uniqueMajors;
   }, [subjects]);
 
   const filteredSubjects = useMemo(() => {
@@ -59,7 +62,7 @@ export default function SubjectsPage() {
         subject.name.toLowerCase().includes(search.toLowerCase()) ||
         subject.short_name.toLowerCase().includes(search.toLowerCase());
       const matchesMajor =
-        majorFilter === 'all' || subject.majors.includes(majorFilter);
+        majorFilter === 'all' || subject.majors.some((m) => m.id === majorFilter);
       return matchesSearch && matchesMajor;
     });
   }, [subjects, search, majorFilter]);
@@ -102,8 +105,8 @@ export default function SubjectsPage() {
               <SelectContent>
                 <SelectItem value="all">All Majors</SelectItem>
                 {majors.map((major) => (
-                  <SelectItem key={major} value={major}>
-                    {major}
+                  <SelectItem key={major.id} value={major.id}>
+                    {major.major_name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -137,11 +140,11 @@ export default function SubjectsPage() {
                         {subject.short_name}
                       </Badge>
                       <div className="flex -space-x-2">
-                        {subject.majors.map((major) => (
+                        {subject.majors?.map((major) => (
                           <div
-                            key={major}
+                            key={major.id}
                             className="w-2 h-2 rounded-full bg-blue-500"
-                            title={major}
+                            title={major.major_name}
                           />
                         ))}
                       </div>
@@ -151,13 +154,14 @@ export default function SubjectsPage() {
                       <div className="flex items-center text-sm text-slate-600">
                         <Users className="w-4 h-4 mr-2 text-slate-400 shrink-0" />
                         <span className="truncate">
-                          {subject.professors.join(', ') || 'No professors assigned'}
+                          {subject.professors?.map((p) => p.name).join(', ') ||
+                            'No professors assigned'}
                         </span>
                       </div>
                       <div className="flex items-center text-sm text-slate-600">
                         <Book className="w-4 h-4 mr-2 text-slate-400 shrink-0" />
                         <span className="truncate">
-                          {subject.majors.join(', ')}
+                          {subject.majors?.map((m) => m.major_name).join(', ') || '-'}
                         </span>
                       </div>
                     </div>

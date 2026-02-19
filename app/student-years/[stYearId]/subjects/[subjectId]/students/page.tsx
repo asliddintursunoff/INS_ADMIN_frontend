@@ -144,15 +144,18 @@ export default function StudentsInSubjectPage() {
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Professors: {currentSubject?.professors.join(', ') || 'N/A'}
+                Professors:{' '}
+                {currentSubject?.professors?.map((p) => p.name).join(', ') || 'N/A'}
               </p>
             </div>
             <div className="flex gap-2">
               <Badge variant="outline" className="bg-white">
                 {currentSubject?.short_name}
               </Badge>
-              {currentSubject?.majors.map(m => (
-                <Badge key={m} variant="secondary">{m}</Badge>
+              {currentSubject?.majors?.map((m) => (
+                <Badge key={m.id} variant="secondary">
+                  {m.major_name}
+                </Badge>
               ))}
             </div>
           </div>
@@ -233,13 +236,18 @@ export default function StudentsInSubjectPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className={cn(
-                            "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
-                            student.absence_count >= 7 ? "bg-red-600 text-white" :
-                            student.absence_count >= 5 ? "bg-orange-500 text-white" :
-                            student.absence_count >= 3 ? "bg-yellow-500 text-white" :
-                            "bg-slate-100 text-slate-700"
-                          )}>
+                          <span
+                            className={cn(
+                              'inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs',
+                              student.highest_absence >= 7
+                                ? 'bg-red-600 text-white'
+                                : student.highest_absence >= 5
+                                  ? 'bg-orange-500 text-white'
+                                  : student.highest_absence >= 3
+                                    ? 'bg-yellow-500 text-white'
+                                    : 'bg-slate-100 text-slate-700'
+                            )}
+                          >
                             {student.absence_count}
                           </span>
                         </TableCell>

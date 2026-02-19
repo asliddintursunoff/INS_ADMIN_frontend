@@ -19,12 +19,21 @@ export interface StudentYear {
   graduation_year: number;
 }
 
+export interface Major {
+  id: string;
+  major_name: string;
+}
+
+export interface Professor {
+  name: string;
+}
+
 export interface Subject {
   id: string;
   short_name: string;
   name: string;
-  majors: string[];
-  professors: string[];
+  majors: Major[];
+  professors: Professor[];
 }
 
 export interface Enrollment {
@@ -81,10 +90,6 @@ export interface AttendanceNotification {
   seen?: boolean;
 }
 
-export interface Major {
-  id: string;
-  name: string;
-}
 
 export enum GroupType {
   FULL_TIME = 'FULL_TIME',

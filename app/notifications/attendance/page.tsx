@@ -216,7 +216,7 @@ export default function AttendanceNotificationsPage() {
                     <SelectItem value="all">All Majors</SelectItem>
                     {majors?.map((m) => (
                       <SelectItem key={m.id} value={m.id}>
-                        {m.name}
+                        {m.major_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
