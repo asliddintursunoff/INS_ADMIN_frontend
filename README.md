@@ -1,63 +1,82 @@
 # University CRM Admin Panel
 
-A production-quality admin panel for managing university student attendance, subjects, and administrators.
+A production-quality Admin Panel for University Management, built with Next.js 14, TypeScript, TailwindCSS, and shadcn/ui.
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: TailwindCSS
-- **Components**: shadcn/ui (Radix UI)
-- **Data Fetching**: TanStack Query (React Query)
-- **Tables**: TanStack Table (used via shadcn Table)
-- **Validation**: Zod
-- **Icons**: Lucide React
-- **API Client**: Axios with interceptors
-
-## Architecture
-
-- `app/`: Next.js routes and pages
-- `components/`: Shared UI components and layout
-- `features/`: Feature-specific logic and components
-- `services/`: API service definitions
-- `lib/`: Utility functions and shared library configurations
-- `types/`: TypeScript interfaces and enums
-- `hooks/`: Reusable React hooks
-
-## Setup
-
-1.  **Clone the repository**
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Environment Variables**:
-    Create a `.env.local` file in the root directory and add the backend base URL:
-    ```env
-    NEXT_PUBLIC_API_BASE_URL=https://your-api-url.com
-    ```
-    See `.env.example` for reference.
-4.  **Run the development server**:
-    ```bash
-    npm run dev
-    ```
-5.  **Open the app**:
-    Navigate to `http://localhost:3000`
+- **Framework**: [Next.js 14 (App Router)](https://nextjs.org/)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (Radix UI)
+- **Data Fetching**: [TanStack Query (React Query)](https://tanstack.com/query)
+- **State Management**: React Query & React Context
+- **Validation**: [Zod](https://zod.dev/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **API Client**: [Axios](https://axios-http.com/) with interceptors
 
 ## Features
 
-- **Authentication**: Secure login with JWT stored in localStorage and injected into requests via Axios interceptors.
-- **Student Years**: Dashboard with cards representing different academic years.
-- **Subjects**: Filterable and searchable list of subjects per student year.
-- **Attendance Management**: Detailed view of students in a subject with aggregated attendance stats and color-coded alerts for high absences.
-- **Notifications**: Centralized view for attendance alerts with filtering and "Mark as Seen" functionality.
-- **Admin Management**: (Root Only) Interface to register and delete administrative accounts.
-- **Matrix View**: Experimental view for academic matrices with Excel export functionality.
+- **Authentication**: JWT-based login with persistent sessions and automatic token injection.
+- **RBAC**: Role-based access control. Only root users can access the Admin Management section.
+- **Student Years**: Overview of academic years with navigation to subjects.
+- **Subjects Management**: Filterable list of subjects for each student year.
+- **Attendance Monitoring**: Detailed view of students in a subject with color-coded absence warnings (3-4 yellow, 5-6 orange, 7+ red).
+- **Attendance Notifications**: Real-time tracking of new absences with filtering and optimistic "Done" status updates.
+- **Admin Management**: (Root Only) Create and delete administrative accounts.
+- **Experimental Matrix**: Dynamic grid view for academic programs and years with Excel export capability.
 
-## UI/UX
+## Getting Started
 
-- Professional "official university" style with a neutral palette.
-- Responsive layout with a persistent sidebar and top header.
-- Loading skeletons for improved perceived performance.
-- Toast notifications for feedback on user actions.
-- Modal dialogs for detailed information without losing context.
+### Prerequisites
+
+- Node.js 18.17 or later
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Environment Setup
+
+Copy `.env.example` to `.env.local` and fill in the backend API URL:
+
+```bash
+cp .env.example .env.local
+```
+
+Example `.env.local`:
+```
+NEXT_PUBLIC_API_BASE_URL=https://api.university.example.com
+```
+
+### Running the Application
+
+Development mode:
+```bash
+npm run dev
+```
+
+Production build:
+```bash
+npm run build
+npm start
+```
+
+## Project Structure
+
+- `app/`: Next.js App Router pages and layouts.
+- `components/`: Reusable UI components (shadcn/ui and custom).
+- `features/`: Feature-specific components, hooks, and logic.
+- `lib/`: Shared utilities (API client, utils).
+- `services/`: API service layers with Zod validation.
+- `types/`: TypeScript definitions and Zod schemas.
+- `hooks/`: Global custom hooks (e.g., `useAuth`).
+
+## Security
+
+- Tokens are stored in `localStorage`.
+- All requests to protected endpoints include the `Authorization: Bearer <token>` header via Axios interceptors.
+- Route guards prevent unauthorized access to protected pages.

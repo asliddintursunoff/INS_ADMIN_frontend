@@ -1,0 +1,19 @@
+
+> tmp_app@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+  ▲ Next.js 14.2.10
+  - Local:        http://localhost:3001
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1981ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 7.7s (1040 modules)
+ GET /login 200 in 8465ms
+ ✓ Compiled in 873ms (475 modules)
+ ○ Compiling /student-years ...
+ ✓ Compiled /student-years in 2.2s (1240 modules)
+ GET /student-years 200 in 2597ms
+ GET /student-years 200 in 50ms

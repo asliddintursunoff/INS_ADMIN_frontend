@@ -34,7 +34,8 @@ export const ProfessorSchema = z.object({
 export const SubjectSchema = z.object({
   id: z.string(),
   short_name: z.string(),
-  name: z.string(),
+  name: z.string().optional(),
+  subject_name: z.string().optional(),
   majors: safeArray(MajorSchema),
   professors: safeArray(ProfessorSchema),
 });
@@ -91,4 +92,24 @@ export const AttendanceNotificationSchema = z.object({
   enrollment_id: z.string(),
   attendance_info_id: z.string(),
   seen: z.boolean().optional().default(false),
+});
+
+export const StudentInSubjectSchema = z.object({
+  id: z.string(),
+  student_id: z.string(),
+  student_name: z.string(),
+  telegram_id: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  enrollments: safeArray(EnrollmentSchema),
+  attendance_count: z.number().catch(0),
+  absence_count: z.number().catch(0),
+  late_count: z.number().catch(0),
+  max_absence: z.number().catch(0),
+  max_late: z.number().catch(0),
+  highest_absence: z.number().catch(0),
+}).passthrough();
+
+export const StudentsBySubjectResponseSchema = z.object({
+  subject: SubjectSchema,
+  students: safeArray(StudentInSubjectSchema),
 });

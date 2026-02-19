@@ -21,9 +21,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { User, Calendar, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { User, Calendar, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import {
   Select,
   SelectContent,
@@ -47,17 +48,28 @@ export function StudentEnrollmentModal({
   studentName,
   allEnrollments = [],
 }: StudentEnrollmentModalProps) {
+  const { toast } = useToast();
   const [activeEnrollmentId, setActiveEnrollmentId] = useState<string | null>(initialEnrollmentId);
 
   useEffect(() => {
     setActiveEnrollmentId(initialEnrollmentId);
-  }, [initialEnrollmentId]);
+  }, [initialEnrollmentId, isOpen]);
 
-  const { data: detail, isLoading } = useQuery({
+  const { data: detail, isLoading, isError, error } = useQuery({
     queryKey: ['enrollment-detail', activeEnrollmentId],
     queryFn: () => attendanceService.getStudentByEnrollment(activeEnrollmentId!),
     enabled: isOpen && !!activeEnrollmentId,
   });
+
+  useEffect(() => {
+    if (isError) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: (error as any)?.response?.data?.detail || 'Failed to load enrollment details',
+      });
+    }
+  }, [isError, error, toast]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -99,6 +111,12 @@ export function StudentEnrollmentModal({
           <div className="p-6 space-y-4">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-64 w-full" />
+          </div>
+        ) : isError ? (
+          <div className="p-12 text-center text-red-600 bg-red-50 rounded-lg m-6 border border-red-100">
+            <XCircle className="w-12 h-12 mx-auto mb-4 opacity-20" />
+            <p className="font-bold">Failed to load student details</p>
+            <p className="text-sm opacity-70">Please try again later or contact support.</p>
           </div>
         ) : detail ? (
           <>

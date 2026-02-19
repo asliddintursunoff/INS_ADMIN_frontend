@@ -1,12 +1,16 @@
 import { apiClient } from '@/lib/apiClient';
-import { Enrollment, StudentEnrollmentDetail } from '@/types';
-import { EnrollmentSchema, StudentEnrollmentDetailSchema } from '@/types/schemas';
-import { z } from 'zod';
+import { StudentEnrollmentDetail, Subject, StudentInSubject } from '@/types';
+import { StudentEnrollmentDetailSchema, StudentsBySubjectResponseSchema } from '@/types/schemas';
+
+export interface StudentsBySubjectResponse {
+  subject: Subject;
+  students: StudentInSubject[];
+}
 
 export const attendanceService = {
-  getStudentsBySubject: async (subjectId: string): Promise<Enrollment[]> => {
+  getStudentsBySubject: async (subjectId: string): Promise<StudentsBySubjectResponse> => {
     const response = await apiClient.get(`/attendance/students-by-subject/${subjectId}`);
-    return z.array(EnrollmentSchema).parse(response.data);
+    return StudentsBySubjectResponseSchema.parse(response.data);
   },
 
   getStudentByEnrollment: async (enrollmentId: string): Promise<StudentEnrollmentDetail> => {
