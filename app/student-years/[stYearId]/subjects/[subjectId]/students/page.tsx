@@ -32,7 +32,6 @@ import { Badge } from '@/components/ui/badge';
 import { useMemo, useEffect } from 'react';
 import { EmptyState } from '@/components/EmptyState';
 import { Users2 } from 'lucide-react';
-import { StudentInSubject } from '@/types';
 
 export default function StudentsInSubjectPage() {
   const params = useParams();
@@ -72,9 +71,25 @@ export default function StudentsInSubjectPage() {
     }
   }, [response]);
 
-  const students = useMemo<StudentInSubject[]>(() => {
+  const students = useMemo(() => {
     const list = Array.isArray(response?.students) ? response.students : [];
-    return list;
+    return list.map(student => {
+      const enrollments = student.enrollments || [];
+      const attendance_count = enrollments.reduce((sum, e) => sum + (e.attendance || 0), 0);
+      const absence_count = enrollments.reduce((sum, e) => sum + (e.absence || 0), 0);
+      const late_count = enrollments.reduce((sum, e) => sum + (e.late || 0), 0);
+      const highest_absence = enrollments.length > 0
+        ? Math.max(...enrollments.map(e => e.absence || 0))
+        : 0;
+
+      return {
+        ...student,
+        attendance_count,
+        absence_count,
+        late_count,
+        highest_absence
+      };
+    });
   }, [response]);
 
   const getAbsenceColorClass = (highestAbsence: number) => {
@@ -82,6 +97,15 @@ export default function StudentsInSubjectPage() {
     if (highestAbsence >= 5) return 'bg-orange-50 hover:bg-orange-100';
     if (highestAbsence >= 3) return 'bg-yellow-50 hover:bg-yellow-100';
     return '';
+  };
+
+  const renderProfessors = (professors: string | { name: string }[] | undefined | null) => {
+    if (!professors) return 'N/A';
+    if (typeof professors === 'string') return professors;
+    if (Array.isArray(professors)) {
+      return professors.map((p) => (typeof p === 'string' ? p : p.name)).join(', ');
+    }
+    return 'N/A';
   };
 
   return (
@@ -114,18 +138,15 @@ export default function StudentsInSubjectPage() {
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Professors:{' '}
-                {currentSubject?.professors?.map((p) => p.name).join(', ') || 'N/A'}
+                {renderProfessors(currentSubject?.professors)}
               </p>
             </div>
             <div className="flex gap-2">
-              <Badge variant="outline" className="bg-white">
-                {currentSubject?.short_name}
-              </Badge>
-              {currentSubject?.majors?.map((m) => (
-                <Badge key={m.id} variant="secondary">
-                  {m.major_name}
+              {currentSubject?.short_name && (
+                <Badge variant="outline" className="bg-white">
+                  {currentSubject.short_name}
                 </Badge>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -155,7 +176,6 @@ export default function StudentsInSubjectPage() {
                       <TableHead className="text-center">Attendance</TableHead>
                       <TableHead className="text-center">Late</TableHead>
                       <TableHead className="text-center">Absence</TableHead>
-                      <TableHead className="text-right">Max Limits</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -170,16 +190,16 @@ export default function StudentsInSubjectPage() {
                           if (!student.enrollments || student.enrollments.length === 0) return;
                           setSelectedStudent({
                             enrollmentId: student.enrollments[0].id,
-                            name: student.student_name,
+                            name: student.name || student.student_name || 'Unknown Student',
                             allEnrollments: student.enrollments.map((e, i) => ({
                               id: e.id,
-                              label: `Enrollment ${i + 1} (${e.absence_count} abs)`
+                              label: `Enrollment ${i + 1} (${e.absence} abs)`
                             }))
                           });
                         }}
                       >
                         <TableCell className="font-medium">
-                          {student.student_name}
+                          {student.name || student.student_name}
                         </TableCell>
                         <TableCell>
                           {student.telegram_id ? (
@@ -226,9 +246,6 @@ export default function StudentsInSubjectPage() {
                           >
                             {student.absence_count ?? 0}
                           </span>
-                        </TableCell>
-                        <TableCell className="text-right text-xs text-muted-foreground">
-                          Max Abs: {student.max_absence ?? 0} / Max Late: {student.max_late ?? 0}
                         </TableCell>
                       </TableRow>
                     ))}

@@ -1,10 +1,10 @@
 import { apiClient } from '@/lib/apiClient';
-import { StudentEnrollmentDetail, Subject, StudentInSubject } from '@/types';
+import { StudentEnrollmentDetail, AttendanceSubject, AttendanceStudent } from '@/types';
 import { StudentEnrollmentDetailSchema, StudentsBySubjectResponseSchema } from '@/types/schemas';
 
 export interface StudentsBySubjectResponse {
-  subject: Subject;
-  students: StudentInSubject[];
+  subject: AttendanceSubject;
+  students: AttendanceStudent[];
 }
 
 export const attendanceService = {

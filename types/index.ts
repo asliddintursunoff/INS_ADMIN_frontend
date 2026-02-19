@@ -10,7 +10,9 @@ import {
   StudentEnrollmentDetailSchema,
   AttendanceNotificationSchema,
   StudentsBySubjectResponseSchema,
-  StudentInSubjectSchema
+  StudentInSubjectSchema,
+  AttendanceStudentSchema,
+  AttendanceSubjectSchema
 } from './schemas';
 
 export type Major = z.infer<typeof MajorSchema>;
@@ -24,6 +26,8 @@ export type StudentEnrollmentDetail = z.infer<typeof StudentEnrollmentDetailSche
 export type AttendanceNotification = z.infer<typeof AttendanceNotificationSchema>;
 export type StudentsBySubjectResponse = z.infer<typeof StudentsBySubjectResponseSchema>;
 export type StudentInSubject = z.infer<typeof StudentInSubjectSchema>;
+export type AttendanceStudent = z.infer<typeof AttendanceStudentSchema>;
+export type AttendanceSubject = z.infer<typeof AttendanceSubjectSchema>;
 
 export interface LoginResponse {
   access_token: string;
