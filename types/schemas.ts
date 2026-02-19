@@ -61,11 +61,16 @@ export const AttendanceInfoSchema = z.object({
 });
 
 export const StudentEnrollmentDetailSchema = z.object({
-  student_info: z.object({
+  subject: z.object({
+    subject_id: z.string(),
+    subject_name: z.string(),
+    professor_name: z.string().optional().nullable(),
+  }).optional().nullable(),
+  student: z.object({
     first_name: z.string(),
     last_name: z.string(),
     telegram_id: z.string().optional().nullable(),
-  }),
+  }).optional().nullable(),
   summary: z.object({
     attendance: z.number().default(0),
     late: z.number().default(0),
@@ -110,25 +115,21 @@ export const StudentInSubjectSchema = z.object({
 }).passthrough();
 
 export const AttendanceSubjectSchema = z.object({
-  id: z.string().optional(), // some endpoints use 'id', some 'subject_id'
-  subject_id: z.string().optional(),
-  subject_name: z.string().optional(),
-  name: z.string().optional(),
-  short_name: z.string().optional(),
-  professors: z.union([z.string(), safeArray(ProfessorSchema)]).optional(),
+  subject_id: z.string(),
+  subject_name: z.string(),
+  professors: safeArray(z.string()),
 });
 
 export const AttendanceEnrollmentSchema = z.object({
   id: z.string(),
-  attendance: z.number().catch(0),
-  late: z.number().catch(0),
-  absence: z.number().catch(0),
+  attendance: z.number().nullable().optional().default(0),
+  late: z.number().nullable().optional().default(0),
+  absence: z.number().nullable().optional().default(0),
 });
 
 export const AttendanceStudentSchema = z.object({
   id: z.string(),
-  name: z.string().optional(),
-  student_name: z.string().optional(),
+  name: z.string(),
   telegram_id: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   enrollments: safeArray(AttendanceEnrollmentSchema),

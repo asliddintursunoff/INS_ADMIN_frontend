@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { User, Calendar, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { User, Calendar, CheckCircle2, XCircle, Clock, BookOpen } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -71,19 +71,38 @@ export function StudentEnrollmentModal({
     }
   }, [isError, error, toast]);
 
+  const displayName = detail?.student
+    ? `${detail.student.first_name} ${detail.student.last_name}`
+    : studentName;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
           <div className="flex justify-between items-start pr-8">
-            <div>
+            <div className="space-y-1">
               <DialogTitle className="text-2xl flex items-center gap-2">
                 <User className="w-6 h-6 text-blue-600" />
-                {studentName}
+                {displayName}
               </DialogTitle>
-              <DialogDescription>
-                Detailed attendance history
-              </DialogDescription>
+              {detail?.subject && (
+                <div className="flex flex-col gap-1">
+                  <DialogDescription className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {detail.subject.subject_name}
+                  </DialogDescription>
+                  {detail.subject.professor_name && (
+                    <span className="text-xs text-muted-foreground">
+                      Professor: {detail.subject.professor_name}
+                    </span>
+                  )}
+                </div>
+              )}
+              {!detail?.subject && (
+                <DialogDescription>
+                  Detailed attendance history
+                </DialogDescription>
+              )}
             </div>
             {allEnrollments.length > 1 && (
               <div className="w-48">

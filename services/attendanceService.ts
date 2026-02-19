@@ -1,11 +1,6 @@
 import { apiClient } from '@/lib/apiClient';
-import { StudentEnrollmentDetail, AttendanceSubject, AttendanceStudent } from '@/types';
+import { StudentEnrollmentDetail, StudentsBySubjectResponse } from '@/types';
 import { StudentEnrollmentDetailSchema, StudentsBySubjectResponseSchema } from '@/types/schemas';
-
-export interface StudentsBySubjectResponse {
-  subject: AttendanceSubject;
-  students: AttendanceStudent[];
-}
 
 export const attendanceService = {
   getStudentsBySubject: async (subjectId: string): Promise<StudentsBySubjectResponse> => {

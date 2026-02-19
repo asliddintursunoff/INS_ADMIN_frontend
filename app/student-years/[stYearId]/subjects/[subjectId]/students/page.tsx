@@ -63,7 +63,8 @@ export default function StudentsInSubjectPage() {
   });
 
   const currentYear = years?.find((y) => y.id === stYearId);
-  const currentSubject = response?.subject || subjects?.find((s) => s.id === subjectId);
+  const currentSubject = response?.subject;
+  const backupSubject = subjects?.find((s) => s.id === subjectId);
 
   useEffect(() => {
     if (response) {
@@ -81,13 +82,17 @@ export default function StudentsInSubjectPage() {
       const highest_absence = enrollments.length > 0
         ? Math.max(...enrollments.map(e => e.absence || 0))
         : 0;
+      const highest_late = enrollments.length > 0
+        ? Math.max(...enrollments.map(e => e.late || 0))
+        : 0;
 
       return {
         ...student,
         attendance_count,
         absence_count,
         late_count,
-        highest_absence
+        highest_absence,
+        highest_late
       };
     });
   }, [response]);
@@ -99,7 +104,7 @@ export default function StudentsInSubjectPage() {
     return '';
   };
 
-  const renderProfessors = (professors: string | { name: string }[] | undefined | null) => {
+  const renderProfessors = (professors: string | { name: string }[] | string[] | undefined | null) => {
     if (!professors) return 'N/A';
     if (typeof professors === 'string') return professors;
     if (Array.isArray(professors)) {
@@ -107,6 +112,8 @@ export default function StudentsInSubjectPage() {
     }
     return 'N/A';
   };
+
+  const shortName = (currentSubject as { short_name?: string })?.short_name || backupSubject?.short_name;
 
   return (
     <DashboardLayout>
@@ -125,7 +132,7 @@ export default function StudentsInSubjectPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{currentSubject?.subject_name || currentSubject?.name || 'Students'}</BreadcrumbPage>
+                <BreadcrumbPage>{currentSubject?.subject_name || backupSubject?.name || backupSubject?.subject_name || 'Students'}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -133,18 +140,18 @@ export default function StudentsInSubjectPage() {
           <div className="mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                {currentSubject?.subject_name || currentSubject?.name}
+                {currentSubject?.subject_name || backupSubject?.name || backupSubject?.subject_name}
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Professors:{' '}
-                {renderProfessors(currentSubject?.professors)}
+                {renderProfessors(currentSubject?.professors || backupSubject?.professors)}
               </p>
             </div>
             <div className="flex gap-2">
-              {currentSubject?.short_name && (
+              {shortName && (
                 <Badge variant="outline" className="bg-white">
-                  {currentSubject.short_name}
+                  {shortName}
                 </Badge>
               )}
             </div>
@@ -176,6 +183,8 @@ export default function StudentsInSubjectPage() {
                       <TableHead className="text-center">Attendance</TableHead>
                       <TableHead className="text-center">Late</TableHead>
                       <TableHead className="text-center">Absence</TableHead>
+                      <TableHead className="text-center">Max Abs</TableHead>
+                      <TableHead className="text-center">Max Late</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -190,16 +199,16 @@ export default function StudentsInSubjectPage() {
                           if (!student.enrollments || student.enrollments.length === 0) return;
                           setSelectedStudent({
                             enrollmentId: student.enrollments[0].id,
-                            name: student.name || student.student_name || 'Unknown Student',
+                            name: student.name || 'Unknown Student',
                             allEnrollments: student.enrollments.map((e, i) => ({
                               id: e.id,
-                              label: `Enrollment ${i + 1} (${e.absence} abs)`
+                              label: `Enrollment ${i + 1} (${e.absence || 0} abs)`
                             }))
                           });
                         }}
                       >
                         <TableCell className="font-medium">
-                          {student.name || student.student_name}
+                          {student.name}
                         </TableCell>
                         <TableCell>
                           {student.telegram_id ? (
@@ -221,31 +230,24 @@ export default function StudentsInSubjectPage() {
                             <span className="text-slate-400">N/A</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-xs">
-                            {student.attendance_count ?? 0}
-                          </span>
+                        <TableCell className="text-center font-bold text-green-700">
+                          {student.attendance_count ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-amber-700">
+                          {student.late_count ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-red-700">
+                          {student.absence_count ?? 0}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-bold text-xs">
-                            {student.late_count ?? 0}
-                          </span>
+                          <Badge variant="outline" className="font-mono">
+                            {student.highest_absence}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span
-                            className={cn(
-                              'inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs',
-                              (student.highest_absence ?? 0) >= 7
-                                ? 'bg-red-600 text-white'
-                                : (student.highest_absence ?? 0) >= 5
-                                  ? 'bg-orange-500 text-white'
-                                  : (student.highest_absence ?? 0) >= 3
-                                    ? 'bg-yellow-500 text-white'
-                                    : 'bg-slate-100 text-slate-700'
-                            )}
-                          >
-                            {student.absence_count ?? 0}
-                          </span>
+                          <Badge variant="outline" className="font-mono">
+                            {student.highest_late}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -261,6 +263,7 @@ export default function StudentsInSubjectPage() {
           <div className="space-y-1">
             <p className="font-semibold text-blue-700">Table Guide:</p>
             <p>Row highlighting based on absence count: 3-4 (Yellow), 5-6 (Orange), 7+ (Red).</p>
+            <p><strong>Max Abs/Late:</strong> The highest count found across all enrollments for this student.</p>
             <p>Click on a row to see detailed attendance history for that student.</p>
           </div>
         </div>
