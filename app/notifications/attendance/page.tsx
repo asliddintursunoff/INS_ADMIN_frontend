@@ -28,7 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentEnrollmentModal } from '@/features/attendance/components/StudentEnrollmentModal';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Filter, RefreshCcw, Bell, Loader2, BellOff, Search as SearchIcon } from 'lucide-react';
+import { Filter, RefreshCcw, Bell, Loader2, BellOff, Search as SearchIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import {
@@ -60,11 +60,11 @@ export default function AttendanceNotificationsPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const params: GetNotificationsParams = {
+  const params = useMemo<GetNotificationsParams>(() => ({
     st_year_id: filters.stYear === 'all' ? undefined : filters.stYear,
     major_id: filters.major === 'all' ? undefined : filters.major,
     absence_greater_than: filters.absence ? parseInt(filters.absence) : undefined,
-  };
+  }), [filters.stYear, filters.major, filters.absence]);
 
   const [selectedEnrollment, setSelectedEnrollment] = useState<{
     id: string;
@@ -366,7 +366,7 @@ export default function AttendanceNotificationsPage() {
                             {pendingIds.has(n.attendance_info_id) ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (n.seen || seenIds.has(n.attendance_info_id)) ? (
-                              <><CheckCircle2 className="w-3 h-3 mr-1" /> Done</>
+                              'Done ✓'
                             ) : (
                               'Done'
                             )}
