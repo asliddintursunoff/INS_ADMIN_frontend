@@ -5,7 +5,7 @@ import { notificationService, GetNotificationsParams } from '@/services/notifica
 import { AttendanceNotification } from '@/types';
 import { adminPanelService } from '@/services/adminPanelService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Table,
@@ -28,7 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentEnrollmentModal } from '@/features/attendance/components/StudentEnrollmentModal';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Filter, RefreshCcw, Bell, Loader2, BellOff } from 'lucide-react';
+import { CheckCircle2, Filter, RefreshCcw, Bell, Loader2, BellOff, Search as SearchIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import {
@@ -49,6 +49,16 @@ export default function AttendanceNotificationsPage() {
     major: searchParams.get('major_id') || 'all',
     absence: searchParams.get('absence_greater_than') || '',
   });
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const params: GetNotificationsParams = {
     st_year_id: filters.stYear === 'all' ? undefined : filters.stYear,
@@ -71,11 +81,22 @@ export default function AttendanceNotificationsPage() {
     queryFn: adminPanelService.getMajors,
   });
 
-  const { data: notifications, isLoading } = useQuery({
+  const { data: rawNotifications, isLoading } = useQuery({
     queryKey: ['notifications', params],
     queryFn: () => notificationService.getNotifications(params),
     placeholderData: keepPreviousData,
   });
+
+  const notifications = useMemo(() => {
+    const list = Array.isArray(rawNotifications) ? rawNotifications : [];
+    if (!debouncedSearch) return list;
+
+    const s = debouncedSearch.toLowerCase();
+    return list.filter(n =>
+      (n.student_id || "").toLowerCase().includes(s) ||
+      (`${n.first_name || ""} ${n.last_name || ""}`).toLowerCase().includes(s)
+    );
+  }, [rawNotifications, debouncedSearch]);
 
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
@@ -135,6 +156,7 @@ export default function AttendanceNotificationsPage() {
 
   const handleResetFilters = () => {
     setFilters({ stYear: 'all', major: 'all', absence: '' });
+    setSearchTerm('');
     router.push('/notifications/attendance');
   };
 
@@ -174,7 +196,7 @@ export default function AttendanceNotificationsPage() {
               Attendance Notifications
             </h1>
             <p className="text-muted-foreground mt-1">
-              {Array.isArray(notifications) ? notifications.length : 0} students listed
+              {notifications.length} students listed
             </p>
           </div>
         </div>
@@ -183,11 +205,23 @@ export default function AttendanceNotificationsPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <Filter className="w-4 h-4" />
-              Filters
+              Filters & Search
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div className="space-y-2 col-span-1 md:col-span-1">
+                <label className="text-xs font-semibold uppercase text-slate-500">Search</label>
+                <div className="relative">
+                  <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Name or ID..."
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-slate-500">Student Year</label>
                 <Select
@@ -266,7 +300,9 @@ export default function AttendanceNotificationsPage() {
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
-                      <TableHead>Student</TableHead>
+                      <TableHead>Student ID</TableHead>
+                      <TableHead>First Name</TableHead>
+                      <TableHead>Last Name</TableHead>
                       <TableHead>Group/Major</TableHead>
                       <TableHead>Subject/Prof</TableHead>
                       <TableHead className="text-center">Absence Date</TableHead>
@@ -277,7 +313,7 @@ export default function AttendanceNotificationsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(Array.isArray(notifications) ? notifications : []).map((n) => (
+                    {notifications.map((n) => (
                       <TableRow
                         key={`${n.enrollment_id}-${n.attendance_info_id}`}
                         className={cn(
@@ -289,9 +325,14 @@ export default function AttendanceNotificationsPage() {
                           name: `${n.first_name} ${n.last_name}`
                         })}
                       >
-                        <TableCell>
-                          <div className="font-medium">{n.first_name} {n.last_name}</div>
-                          <div className="text-xs text-slate-400">{n.st_year}</div>
+                        <TableCell className="font-mono text-xs">
+                          {n.student_id}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {n.first_name}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {n.last_name}
                         </TableCell>
                         <TableCell>
                           <div>{n.group_name}</div>
@@ -300,6 +341,7 @@ export default function AttendanceNotificationsPage() {
                         <TableCell>
                           <div className="font-medium">{n.subject_name}</div>
                           <div className="text-xs text-slate-400">{n.prof_name}</div>
+                          <div className="text-[10px] text-slate-300 mt-0.5">{n.st_year}</div>
                         </TableCell>
                         <TableCell className="text-center">
                           {n.new_absence_date}

@@ -188,10 +188,10 @@ export default function StudentsInSubjectPage() {
                   <TableBody>
                     {students.map((student) => (
                       <TableRow
-                        key={student.student_id}
+                        key={student.student_id || Math.random()}
                         className={cn(
                           'cursor-pointer transition-colors',
-                          getAbsenceColorClass(student.highest_absence)
+                          getAbsenceColorClass(student.highest_absence ?? 0)
                         )}
                         onClick={() =>
                           setSelectedStudent({
@@ -211,7 +211,7 @@ export default function StudentsInSubjectPage() {
                           {student.telegram_id ? (
                             <div className="flex items-center gap-1 text-blue-600">
                               <Send className="w-3 h-3" />
-                              {student.telegram_id}
+                              {String(student.telegram_id)}
                             </div>
                           ) : (
                             <span className="text-slate-400">N/A</span>
@@ -221,7 +221,7 @@ export default function StudentsInSubjectPage() {
                           {student.phone ? (
                             <div className="flex items-center gap-1">
                               <Phone className="w-3 h-3 text-slate-400" />
-                              {student.phone}
+                              {String(student.phone)}
                             </div>
                           ) : (
                             <span className="text-slate-400">N/A</span>
