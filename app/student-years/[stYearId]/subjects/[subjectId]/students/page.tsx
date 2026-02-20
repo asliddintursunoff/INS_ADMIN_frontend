@@ -5,7 +5,7 @@ import { attendanceService } from '@/services/attendanceService';
 import { adminPanelService } from '@/services/adminPanelService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -26,10 +26,8 @@ import {
 } from '@/components/ui/breadcrumb';
 import { StudentEnrollmentModal } from '@/features/attendance/components/StudentEnrollmentModal';
 import { cn } from '@/lib/utils';
-import { User, Phone, Send, Info } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-
-import { useMemo, useEffect } from 'react';
+import { User, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/EmptyState';
 import { Users2 } from 'lucide-react';
 
@@ -37,6 +35,8 @@ export default function StudentsInSubjectPage() {
   const params = useParams();
   const stYearId = params.stYearId as string;
   const subjectId = params.subjectId as string;
+
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [selectedStudent, setSelectedStudent] = useState<{
     enrollmentId: string;
@@ -66,24 +66,16 @@ export default function StudentsInSubjectPage() {
   const currentSubject = response?.subject;
   const backupSubject = subjects?.find((s) => s.id === subjectId);
 
-  useEffect(() => {
-    if (response) {
-      console.log("students-by-subject response:", response);
-    }
-  }, [response]);
-
-  const students = useMemo(() => {
+  const filteredStudents = useMemo(() => {
     const list = Array.isArray(response?.students) ? response.students : [];
-    return list.map(student => {
-      const enrollments = student.enrollments || [];
+
+    const mapped = list.map(student => {
+      const enrollments = Array.isArray(student.enrollments) ? student.enrollments : [];
       const attendance_count = enrollments.reduce((sum, e) => sum + (e.attendance || 0), 0);
       const absence_count = enrollments.reduce((sum, e) => sum + (e.absence || 0), 0);
       const late_count = enrollments.reduce((sum, e) => sum + (e.late || 0), 0);
       const highest_absence = enrollments.length > 0
         ? Math.max(...enrollments.map(e => e.absence || 0))
-        : 0;
-      const highest_late = enrollments.length > 0
-        ? Math.max(...enrollments.map(e => e.late || 0))
         : 0;
 
       return {
@@ -91,11 +83,18 @@ export default function StudentsInSubjectPage() {
         attendance_count,
         absence_count,
         late_count,
-        highest_absence,
-        highest_late
+        highest_absence
       };
     });
-  }, [response]);
+
+    if (!searchTerm) return mapped;
+
+    const s = searchTerm.toLowerCase();
+    return mapped.filter(st =>
+      (st.id || "").toLowerCase().includes(s) ||
+      (st.name || "").toLowerCase().includes(s)
+    );
+  }, [response, searchTerm]);
 
   const getAbsenceColorClass = (highestAbsence: number) => {
     if (highestAbsence >= 7) return 'bg-red-50 hover:bg-red-100';
@@ -104,16 +103,10 @@ export default function StudentsInSubjectPage() {
     return '';
   };
 
-  const renderProfessors = (professors: string | { name: string }[] | string[] | undefined | null) => {
-    if (!professors) return 'N/A';
-    if (typeof professors === 'string') return professors;
-    if (Array.isArray(professors)) {
-      return professors.map((p) => (typeof p === 'string' ? p : p.name)).join(', ');
-    }
-    return 'N/A';
+  const renderProfessors = (professors: string[] | undefined | null) => {
+    if (!professors || professors.length === 0) return 'N/A';
+    return professors.join(', ');
   };
-
-  const shortName = (currentSubject as { short_name?: string })?.short_name || backupSubject?.short_name;
 
   return (
     <DashboardLayout>
@@ -142,19 +135,27 @@ export default function StudentsInSubjectPage() {
               <h1 className="text-3xl font-bold tracking-tight">
                 {currentSubject?.subject_name || backupSubject?.name || backupSubject?.subject_name}
               </h1>
-              <p className="text-muted-foreground mt-1 flex items-center gap-2">
+              <div className="text-muted-foreground mt-1 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Professors:{' '}
-                {renderProfessors(currentSubject?.professors || backupSubject?.professors)}
-              </p>
+                <span className="font-medium">Professors:</span>
+                {renderProfessors(currentSubject?.professors)}
+              </div>
             </div>
-            <div className="flex gap-2">
-              {shortName && (
-                <Badge variant="outline" className="bg-white">
-                  {shortName}
-                </Badge>
-              )}
-            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search by ID or Name..."
+              className="pl-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="text-sm text-slate-500">
+            Showing {filteredStudents.length} students
           </div>
         </div>
 
@@ -166,29 +167,26 @@ export default function StudentsInSubjectPage() {
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
-            ) : students.length === 0 ? (
+            ) : filteredStudents.length === 0 ? (
               <EmptyState
                 icon={Users2}
                 title="No students found"
-                description="No students are currently enrolled in this subject."
+                description={searchTerm ? "Try a different search term." : "No students are currently enrolled in this subject."}
               />
             ) : (
               <div className="rounded-md border-t overflow-hidden">
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
-                      <TableHead className="w-[250px]">Student Name</TableHead>
-                      <TableHead>Telegram ID</TableHead>
-                      <TableHead>Phone</TableHead>
+                      <TableHead>Student ID</TableHead>
+                      <TableHead>Student Name</TableHead>
                       <TableHead className="text-center">Attendance</TableHead>
-                      <TableHead className="text-center">Late</TableHead>
                       <TableHead className="text-center">Absence</TableHead>
-                      <TableHead className="text-center">Max Abs</TableHead>
-                      <TableHead className="text-center">Max Late</TableHead>
+                      <TableHead className="text-center">Late</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.map((student) => (
+                    {filteredStudents.map((student) => (
                       <TableRow
                         key={student.id}
                         className={cn(
@@ -196,10 +194,11 @@ export default function StudentsInSubjectPage() {
                           getAbsenceColorClass(student.highest_absence ?? 0)
                         )}
                         onClick={() => {
-                          if (!student.enrollments || student.enrollments.length === 0) return;
+                          const enrollmentId = student.enrollments?.[0]?.id;
+                          if (!enrollmentId) return;
                           setSelectedStudent({
-                            enrollmentId: student.enrollments[0].id,
-                            name: student.name || 'Unknown Student',
+                            enrollmentId,
+                            name: student.name,
                             allEnrollments: student.enrollments.map((e, i) => ({
                               id: e.id,
                               label: `Enrollment ${i + 1} (${e.absence || 0} abs)`
@@ -207,47 +206,20 @@ export default function StudentsInSubjectPage() {
                           });
                         }}
                       >
+                        <TableCell className="font-mono text-sm">
+                          {student.id}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {student.name}
-                        </TableCell>
-                        <TableCell>
-                          {student.telegram_id ? (
-                            <div className="flex items-center gap-1 text-blue-600">
-                              <Send className="w-3 h-3" />
-                              {String(student.telegram_id)}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">N/A</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {student.phone ? (
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              {String(student.phone)}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">N/A</span>
-                          )}
                         </TableCell>
                         <TableCell className="text-center font-bold text-green-700">
                           {student.attendance_count ?? 0}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-amber-700">
-                          {student.late_count ?? 0}
-                        </TableCell>
                         <TableCell className="text-center font-bold text-red-700">
                           {student.absence_count ?? 0}
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="font-mono">
-                            {student.highest_absence}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="font-mono">
-                            {student.highest_late}
-                          </Badge>
+                        <TableCell className="text-center font-bold text-amber-700">
+                          {student.late_count ?? 0}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -257,16 +229,6 @@ export default function StudentsInSubjectPage() {
             )}
           </CardContent>
         </Card>
-
-        <div className="flex items-start gap-2 text-xs text-muted-foreground bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-semibold text-blue-700">Table Guide:</p>
-            <p>Row highlighting based on absence count: 3-4 (Yellow), 5-6 (Orange), 7+ (Red).</p>
-            <p><strong>Max Abs/Late:</strong> The highest count found across all enrollments for this student.</p>
-            <p>Click on a row to see detailed attendance history for that student.</p>
-          </div>
-        </div>
       </div>
 
       <StudentEnrollmentModal

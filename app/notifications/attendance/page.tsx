@@ -195,7 +195,7 @@ function AttendanceNotificationsContent() {
             Attendance Notifications
           </h1>
           <p className="text-muted-foreground mt-1">
-            {notifications.length} students listed
+              Showing {notifications.length} students
           </p>
         </div>
       </div>

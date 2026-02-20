@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Table,
@@ -21,9 +20,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { User, Calendar, CheckCircle2, XCircle, Clock, BookOpen } from 'lucide-react';
+import { User, Calendar, CheckCircle2, XCircle, Clock, Phone, Send, BookOpen } from 'lucide-react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -32,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 interface StudentEnrollmentModalProps {
   isOpen: boolean;
@@ -56,7 +56,7 @@ export function StudentEnrollmentModal({
   }, [initialEnrollmentId, isOpen]);
 
   const { data: detail, isLoading, isError, error } = useQuery({
-    queryKey: ['enrollment-detail', activeEnrollmentId],
+    queryKey: ['student-by-enrollment', activeEnrollmentId],
     queryFn: () => attendanceService.getStudentByEnrollment(activeEnrollmentId!),
     enabled: isOpen && !!activeEnrollmentId,
   });
@@ -71,46 +71,58 @@ export function StudentEnrollmentModal({
     }
   }, [isError, error, toast]);
 
-  const displayName = detail?.student
-    ? `${detail.student.first_name} ${detail.student.last_name}`
-    : studentName;
+  const selectedEnrollment = useMemo(() => {
+    if (!detail?.student?.enrollments) return null;
+    return detail.student.enrollments.find(e => e.id === activeEnrollmentId) || detail.student.enrollments[0];
+  }, [detail, activeEnrollmentId]);
+
+  const studentInfo = detail?.student;
+  const subjectInfo = detail?.subject;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-2">
-          <div className="flex justify-between items-start pr-8">
+        <DialogHeader className="p-6 pb-2 border-b">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div className="space-y-1">
               <DialogTitle className="text-2xl flex items-center gap-2">
                 <User className="w-6 h-6 text-blue-600" />
-                {displayName}
+                {studentInfo?.name || studentName}
               </DialogTitle>
-              {detail?.subject && (
-                <div className="flex flex-col gap-1">
-                  <DialogDescription className="flex items-center gap-1.5 text-slate-600 font-medium">
-                    <BookOpen className="w-3.5 h-3.5" />
-                    {detail.subject.subject_name}
-                  </DialogDescription>
-                  {detail.subject.professor_name && (
-                    <span className="text-xs text-muted-foreground">
-                      Professor: {detail.subject.professor_name}
-                    </span>
-                  )}
-                </div>
-              )}
-              {!detail?.subject && (
-                <DialogDescription>
-                  Detailed attendance history
-                </DialogDescription>
-              )}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                <span className="font-mono">{studentInfo?.id}</span>
+                {studentInfo?.phone && (
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5" />
+                    {studentInfo.phone}
+                  </span>
+                )}
+                {studentInfo?.telegram_id && (
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-blue-600 flex items-center gap-1 hover:no-underline"
+                    onClick={() => {
+                      const id = studentInfo.telegram_id;
+                      const url = isNaN(Number(id))
+                        ? `https://t.me/${id?.replace('@', '')}`
+                        : `https://t.me/${id}`;
+                      window.open(url, '_blank', 'noreferrer');
+                    }}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Telegram
+                  </Button>
+                )}
+              </div>
             </div>
-            {allEnrollments.length > 1 && (
-              <div className="w-48">
+
+            <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+              {allEnrollments.length > 1 && (
                 <Select
                   value={activeEnrollmentId || ''}
                   onValueChange={setActiveEnrollmentId}
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-9 w-full md:w-48 text-xs">
                     <SelectValue placeholder="Select enrollment" />
                   </SelectTrigger>
                   <SelectContent>
@@ -121,8 +133,21 @@ export function StudentEnrollmentModal({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              )}
+              {subjectInfo && (
+                <div className="text-right">
+                  <div className="flex items-center justify-end gap-1.5 text-slate-700 font-semibold text-sm">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {subjectInfo.subject_name}
+                  </div>
+                  {subjectInfo.professor_name && (
+                    <div className="text-xs text-muted-foreground">
+                      Prof: {subjectInfo.professor_name}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </DialogHeader>
 
@@ -137,44 +162,44 @@ export function StudentEnrollmentModal({
             <p className="font-bold">Failed to load student details</p>
             <p className="text-sm opacity-70">Please try again later or contact support.</p>
           </div>
-        ) : detail ? (
+        ) : selectedEnrollment ? (
           <>
-            <div className="px-6 py-4 bg-slate-50 border-y grid grid-cols-3 gap-4">
+            <div className="px-6 py-4 bg-slate-50 border-b grid grid-cols-3 gap-4">
               <div className="text-center p-3 bg-white rounded-lg border shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Attendance</p>
-                <p className="text-2xl font-bold text-green-600">{detail.summary?.attendance ?? 0}</p>
+                <p className="text-2xl font-bold text-green-600">{selectedEnrollment.attendance ?? 0}</p>
               </div>
               <div className="text-center p-3 bg-white rounded-lg border shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Absence</p>
-                <p className="text-2xl font-bold text-red-600">{detail.summary?.absence ?? 0}</p>
+                <p className="text-2xl font-bold text-red-600">{selectedEnrollment.absence ?? 0}</p>
               </div>
               <div className="text-center p-3 bg-white rounded-lg border shadow-sm">
                 <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Late</p>
-                <p className="text-2xl font-bold text-amber-600">{detail.summary?.late ?? 0}</p>
+                <p className="text-2xl font-bold text-amber-600">{selectedEnrollment.late ?? 0}</p>
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-6 pt-2">
+            <ScrollArea className="flex-1 p-0">
               <Table>
                 <TableHeader className="sticky top-0 bg-white z-10">
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="pl-6">Date</TableHead>
                     <TableHead>Class Name</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="text-right pr-6">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(Array.isArray(detail.exact_info) ? detail.exact_info : []).map((info) => (
-                    <TableRow key={info?.id}>
-                      <TableCell className="font-medium">
+                  {(selectedEnrollment.exact_info || []).map((info) => (
+                    <TableRow key={info.id}>
+                      <TableCell className="font-medium pl-6">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           {info.date_of_week}
                         </div>
                       </TableCell>
                       <TableCell>{info.class_name}</TableCell>
-                      <TableCell className="text-right">
-                        <StatusBadge status={info.status} />
+                      <TableCell className="text-right pr-6">
+                        <StatusBadge info={info} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -192,30 +217,30 @@ export function StudentEnrollmentModal({
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case 'attendance':
-      return (
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
-          <CheckCircle2 className="w-3 h-3" />
-          Attendance
-        </Badge>
-      );
-    case 'absence':
-      return (
-        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1">
-          <XCircle className="w-3 h-3" />
-          Absence
-        </Badge>
-      );
-    case 'late':
-      return (
-        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1">
-          <Clock className="w-3 h-3" />
-          Late
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
+function StatusBadge({ info }: { info: any }) {
+  if (info.late) {
+    return (
+      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 gap-1">
+        <Clock className="w-3 h-3" />
+        Late
+      </Badge>
+    );
   }
+  if (info.absence) {
+    return (
+      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 gap-1">
+        <XCircle className="w-3 h-3" />
+        Absence
+      </Badge>
+    );
+  }
+  if (info.attendance) {
+    return (
+      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        Attendance
+      </Badge>
+    );
+  }
+  return <Badge variant="outline">Unknown</Badge>;
 }

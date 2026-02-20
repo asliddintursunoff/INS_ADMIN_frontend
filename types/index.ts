@@ -3,31 +3,29 @@ import {
   MajorSchema,
   ProfessorSchema,
   SubjectSchema,
-  EnrollmentSchema,
   StudentYearSchema,
   SuperUserSchema,
-  AttendanceInfoSchema,
   StudentEnrollmentDetailSchema,
   AttendanceNotificationSchema,
   StudentsBySubjectResponseSchema,
-  StudentInSubjectSchema,
   AttendanceStudentSchema,
-  AttendanceSubjectSchema
+  AttendanceSubjectSchema,
+  DetailEnrollmentSchema,
+  ExactInfoSchema
 } from './schemas';
 
 export type Major = z.infer<typeof MajorSchema>;
 export type Professor = z.infer<typeof ProfessorSchema>;
 export type Subject = z.infer<typeof SubjectSchema>;
-export type Enrollment = z.infer<typeof EnrollmentSchema>;
 export type StudentYear = z.infer<typeof StudentYearSchema>;
 export type SuperUser = z.infer<typeof SuperUserSchema>;
-export type AttendanceInfo = z.infer<typeof AttendanceInfoSchema>;
 export type StudentEnrollmentDetail = z.infer<typeof StudentEnrollmentDetailSchema>;
 export type AttendanceNotification = z.infer<typeof AttendanceNotificationSchema>;
 export type StudentsBySubjectResponse = z.infer<typeof StudentsBySubjectResponseSchema>;
-export type StudentInSubject = z.infer<typeof StudentInSubjectSchema>;
 export type AttendanceStudent = z.infer<typeof AttendanceStudentSchema>;
 export type AttendanceSubject = z.infer<typeof AttendanceSubjectSchema>;
+export type DetailEnrollment = z.infer<typeof DetailEnrollmentSchema>;
+export type ExactInfo = z.infer<typeof ExactInfoSchema>;
 
 export interface LoginResponse {
   access_token: string;
