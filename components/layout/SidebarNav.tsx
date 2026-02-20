@@ -5,10 +5,8 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  Users,
   Bell,
   BookOpen,
-  Grid3X3,
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
