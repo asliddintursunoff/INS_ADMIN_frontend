@@ -1,8 +1,7 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query';
 import { notificationService, GetNotificationsParams } from '@/services/notificationService';
-import { AttendanceNotification } from '@/types';
 import { adminPanelService } from '@/services/adminPanelService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useState, useEffect, useMemo, Suspense } from 'react';
@@ -28,7 +27,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentEnrollmentModal } from '@/features/attendance/components/StudentEnrollmentModal';
 import { cn } from '@/lib/utils';
-import { Filter, RefreshCcw, Bell, Loader2, BellOff, Search as SearchIcon } from 'lucide-react';
+import { Filter, RefreshCcw, Bell, Loader2, BellOff, Search as SearchIcon, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import {
@@ -39,7 +38,6 @@ import {
 } from '@/components/ui/breadcrumb';
 
 function AttendanceNotificationsContent() {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,14 +49,6 @@ function AttendanceNotificationsContent() {
   });
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   const params = useMemo<GetNotificationsParams>(() => ({
     st_year_id: filters.stYear === 'all' ? undefined : filters.stYear,
@@ -74,11 +64,13 @@ function AttendanceNotificationsContent() {
   const { data: years } = useQuery({
     queryKey: ['student-years'],
     queryFn: adminPanelService.getStudentYears,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: majors } = useQuery({
     queryKey: ['majors'],
     queryFn: adminPanelService.getMajors,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: rawNotifications, isLoading } = useQuery({
@@ -89,14 +81,14 @@ function AttendanceNotificationsContent() {
 
   const notifications = useMemo(() => {
     const list = Array.isArray(rawNotifications) ? rawNotifications : [];
-    if (!debouncedSearch) return list;
+    if (!searchTerm) return list;
 
-    const s = debouncedSearch.toLowerCase();
+    const s = searchTerm.toLowerCase();
     return list.filter(n =>
       (n.student_id || "").toLowerCase().includes(s) ||
       (`${n.first_name || ""} ${n.last_name || ""}`).toLowerCase().includes(s)
     );
-  }, [rawNotifications, debouncedSearch]);
+  }, [rawNotifications, searchTerm]);
 
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
@@ -104,32 +96,23 @@ function AttendanceNotificationsContent() {
   const seenMutation = useMutation({
     mutationFn: (id: string) => notificationService.markAsSeen(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['notifications', params] });
-      const previousNotifications = queryClient.getQueryData(['notifications', params]);
-
-      queryClient.setQueryData(['notifications', params], (old: unknown) => {
-        const list = old as AttendanceNotification[];
-        if (!list) return list;
-        return list.map((n) =>
-          n.attendance_info_id === id ? { ...n, seen: true } : n
-        );
-      });
-
       setPendingIds(prev => new Set(prev).add(id));
-      return { previousNotifications };
+      // Optimistic update
+      setSeenIds(prev => new Set(prev).add(id));
     },
-    onSuccess: (_, id) => {
+    onSuccess: () => {
       toast({
         title: 'Marked as seen',
         description: 'The notification has been updated.',
       });
-      setSeenIds(prev => new Set(prev).add(id));
     },
-    onError: (error, id, context: unknown) => {
-      const ctx = context as { previousNotifications?: AttendanceNotification[] };
-      if (ctx?.previousNotifications) {
-        queryClient.setQueryData(['notifications', params], ctx.previousNotifications);
-      }
+    onError: (error, id) => {
+      // Revert on error
+      setSeenIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -171,12 +154,7 @@ function AttendanceNotificationsContent() {
   const handleMarkAsSeen = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (seenIds.has(id)) return;
-
-    seenMutation.mutate(id, {
-      onSuccess: () => {
-        setSeenIds(prev => new Set(prev).add(id));
-      }
-    });
+    seenMutation.mutate(id);
   };
 
   return (
@@ -190,44 +168,44 @@ function AttendanceNotificationsContent() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3 text-slate-900">
             <Bell className="w-8 h-8 text-blue-600" />
             Attendance Notifications
           </h1>
-          <p className="text-muted-foreground mt-1">
-              Showing {notifications.length} students
+          <p className="text-muted-foreground mt-1 font-medium">
+            Total: {notifications.length} students
           </p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-medium flex items-center gap-2">
-            <Filter className="w-4 h-4" />
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="pb-4 border-b bg-slate-50/50">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Filter className="w-4 h-4 text-blue-500" />
             Filters & Search
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="space-y-2 col-span-1 md:col-span-1">
-              <label className="text-xs font-semibold uppercase text-slate-500">Search</label>
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Search</label>
               <div className="relative">
-                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Name or ID..."
-                  className="pl-8"
+                  placeholder="ID or Name..."
+                  className="pl-9 h-9 border-slate-200"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-slate-500">Student Year</label>
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Year</label>
               <Select
                 value={filters.stYear}
                 onValueChange={(v) => setFilters({ ...filters, stYear: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 border-slate-200">
                   <SelectValue placeholder="All Years" />
                 </SelectTrigger>
                 <SelectContent>
@@ -241,12 +219,12 @@ function AttendanceNotificationsContent() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-slate-500">Major</label>
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Major</label>
               <Select
                 value={filters.major}
                 onValueChange={(v) => setFilters({ ...filters, major: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 border-slate-200">
                   <SelectValue placeholder="All Majors" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,27 +238,28 @@ function AttendanceNotificationsContent() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-slate-500">Absence &gt;</label>
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Absence &gt;</label>
               <Input
                 type="number"
                 placeholder="0"
+                className="h-9 border-slate-200"
                 value={filters.absence}
                 onChange={(e) => setFilters({ ...filters, absence: e.target.value })}
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleApplyFilters} className="flex-1">
+              <Button onClick={handleApplyFilters} className="flex-1 h-9 font-bold bg-blue-600 hover:bg-blue-700">
                 Apply
               </Button>
-              <Button variant="outline" onClick={handleResetFilters}>
-                <RefreshCcw className="w-4 h-4" />
+              <Button variant="outline" onClick={handleResetFilters} className="h-9 border-slate-200">
+                <RefreshCcw className="w-4 h-4 text-slate-500" />
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm border-slate-200 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-4">
@@ -295,20 +274,18 @@ function AttendanceNotificationsContent() {
               description="There are no attendance alerts for the selected filters."
             />
           ) : (
-            <div className="rounded-md border-t overflow-hidden">
+            <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>First Name</TableHead>
-                    <TableHead>Last Name</TableHead>
-                    <TableHead>Group/Major</TableHead>
-                    <TableHead>Subject/Prof</TableHead>
-                    <TableHead className="text-center">Absence Date</TableHead>
-                    <TableHead className="text-center">Attendance</TableHead>
-                    <TableHead className="text-center">Absence</TableHead>
-                    <TableHead className="text-center">Late</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent bg-slate-50/50">
+                    <TableHead className="font-bold text-slate-700">Student ID</TableHead>
+                    <TableHead className="font-bold text-slate-700">Name</TableHead>
+                    <TableHead className="font-bold text-slate-700">Group/Major</TableHead>
+                    <TableHead className="font-bold text-slate-700">Subject</TableHead>
+                    <TableHead className="text-center font-bold text-slate-700">Att.</TableHead>
+                    <TableHead className="text-center font-bold text-red-600">Abs.</TableHead>
+                    <TableHead className="text-center font-bold text-amber-600">Late</TableHead>
+                    <TableHead className="text-right pr-6 font-bold text-slate-700">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -316,56 +293,49 @@ function AttendanceNotificationsContent() {
                     <TableRow
                       key={`${n.enrollment_id}-${n.attendance_info_id}`}
                       className={cn(
-                        "cursor-pointer hover:bg-slate-50 transition-colors",
-                        (n.seen || seenIds.has(n.attendance_info_id)) && "opacity-50 grayscale-[0.5]"
+                        "cursor-pointer transition-colors border-b border-slate-100",
+                        (n.seen || seenIds.has(n.attendance_info_id)) && "opacity-50 grayscale-[0.5] bg-slate-50/50"
                       )}
                       onClick={() => setSelectedEnrollment({
                         id: n.enrollment_id,
                         name: `${n.first_name} ${n.last_name}`
                       })}
                     >
-                      <TableCell className="font-mono text-xs">
+                      <TableCell className="font-mono text-xs font-bold text-blue-600">
                         {n.student_id}
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {n.first_name}
+                      <TableCell className="font-bold text-slate-900 whitespace-nowrap">
+                        {n.first_name} {n.last_name}
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {n.last_name}
+                      <TableCell className="whitespace-nowrap">
+                        <div className="text-sm font-semibold text-slate-800">{n.group_name}</div>
+                        <div className="text-[11px] text-slate-400 font-black uppercase tracking-tighter">{n.major}</div>
                       </TableCell>
-                      <TableCell>
-                        <div>{n.group_name}</div>
-                        <div className="text-xs text-slate-400">{n.major}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{n.subject_name}</div>
-                        <div className="text-xs text-slate-400">{n.prof_name}</div>
-                        <div className="text-[10px] text-slate-300 mt-0.5">{n.st_year}</div>
+                      <TableCell className="max-w-[180px]">
+                        <div className="font-semibold text-slate-800 text-sm truncate">{n.subject_name}</div>
+                        <div className="text-[11px] text-slate-400 truncate font-medium">Prof: {n.prof_name}</div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {n.new_absence_date}
+                        <span className="font-black text-green-600">{n.total_attendance?.attendance ?? 0}</span>
                       </TableCell>
-                      <TableCell className="text-center text-green-600 font-bold">
-                        {n.total_attendance?.attendance ?? 0}
+                      <TableCell className="text-center">
+                        <span className="font-black text-red-600">{n.total_attendance?.absence ?? 0}</span>
                       </TableCell>
-                      <TableCell className="text-center text-red-600 font-bold">
-                        {n.total_attendance?.absence ?? 0}
+                      <TableCell className="text-center">
+                        <span className="font-black text-amber-500">{n.total_attendance?.late ?? 0}</span>
                       </TableCell>
-                      <TableCell className="text-center text-amber-600 font-bold">
-                        {n.total_attendance?.late ?? 0}
-                      </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-6">
                         <Button
                           size="sm"
                           variant={(n.seen || seenIds.has(n.attendance_info_id)) ? "secondary" : "default"}
                           disabled={n.seen || seenIds.has(n.attendance_info_id) || pendingIds.has(n.attendance_info_id)}
                           onClick={(e) => handleMarkAsSeen(e, n.attendance_info_id)}
-                          className="w-20"
+                          className="h-8 min-w-[85px] font-black text-[11px] uppercase tracking-wider"
                         >
                           {pendingIds.has(n.attendance_info_id) ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (n.seen || seenIds.has(n.attendance_info_id)) ? (
-                            'Done ✓'
+                            <><CheckCircle2 className="w-3 h-3 mr-1" /> Done</>
                           ) : (
                             'Done'
                           )}

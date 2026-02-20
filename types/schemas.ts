@@ -40,7 +40,7 @@ export const SubjectSchema = z.object({
   professors: safeArray(ProfessorSchema),
 });
 
-// For Students by Subject endpoint
+// Students by Subject
 export const AttendanceEnrollmentSchema = z.object({
   id: z.string(),
   attendance: z.number().catch(0),
@@ -49,7 +49,8 @@ export const AttendanceEnrollmentSchema = z.object({
 });
 
 export const AttendanceStudentSchema = z.object({
-  id: z.string(),
+  id: z.string(), // UUID
+  student_id: z.string(), // Uxxxx
   name: z.string(),
   telegram_id: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
@@ -67,9 +68,9 @@ export const StudentsBySubjectResponseSchema = z.object({
   students: safeArray(AttendanceStudentSchema),
 });
 
-// For Student by Enrollment endpoint
+// Student by Enrollment
 export const ExactInfoSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   date_of_week: z.string(),
   class_name: z.string(),
   attendance: z.boolean().catch(false),
@@ -92,7 +93,8 @@ export const StudentEnrollmentDetailSchema = z.object({
     professor_name: z.string().optional().nullable(),
   }),
   student: z.object({
-    id: z.string(),
+    id: z.string(), // UUID
+    student_id: z.string(), // Uxxxx
     name: z.string(),
     telegram_id: z.string().optional().nullable(),
     phone: z.string().optional().nullable(),
@@ -100,7 +102,7 @@ export const StudentEnrollmentDetailSchema = z.object({
   }),
 });
 
-// For Notifications
+// Notifications
 export const AttendanceNotificationSchema = z.object({
   attendance_info_id: z.string(),
   enrollment_id: z.string(),

@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Breadcrumb,
@@ -26,10 +26,9 @@ import {
 } from '@/components/ui/breadcrumb';
 import { StudentEnrollmentModal } from '@/features/attendance/components/StudentEnrollmentModal';
 import { cn } from '@/lib/utils';
-import { User, Search } from 'lucide-react';
+import { User, Search, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/EmptyState';
-import { Users2 } from 'lucide-react';
 
 export default function StudentsInSubjectPage() {
   const params = useParams();
@@ -49,22 +48,16 @@ export default function StudentsInSubjectPage() {
     queryFn: adminPanelService.getStudentYears,
   });
 
-  const { data: subjects } = useQuery({
-    queryKey: ['subjects', stYearId],
-    queryFn: () => adminPanelService.getSubjectsByStudentYear(stYearId),
-    enabled: !!stYearId,
-  });
-
   const { data: response, isLoading } = useQuery({
-    queryKey: ['students-in-subject', subjectId],
+    queryKey: ['students-by-subject', subjectId],
     queryFn: () => attendanceService.getStudentsBySubject(subjectId),
     enabled: !!subjectId,
     placeholderData: keepPreviousData,
   });
 
+
   const currentYear = years?.find((y) => y.id === stYearId);
   const currentSubject = response?.subject;
-  const backupSubject = subjects?.find((s) => s.id === subjectId);
 
   const filteredStudents = useMemo(() => {
     const list = Array.isArray(response?.students) ? response.students : [];
@@ -91,7 +84,7 @@ export default function StudentsInSubjectPage() {
 
     const s = searchTerm.toLowerCase();
     return mapped.filter(st =>
-      (st.id || "").toLowerCase().includes(s) ||
+      (st.student_id || "").toLowerCase().includes(s) ||
       (st.name || "").toLowerCase().includes(s)
     );
   }, [response, searchTerm]);
@@ -125,41 +118,46 @@ export default function StudentsInSubjectPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{currentSubject?.subject_name || backupSubject?.name || backupSubject?.subject_name || 'Students'}</BreadcrumbPage>
+                <BreadcrumbPage>{currentSubject?.subject_name || 'Students'}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {currentSubject?.subject_name || backupSubject?.name || backupSubject?.subject_name}
-              </h1>
-              <div className="text-muted-foreground mt-1 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span className="font-medium">Professors:</span>
-                {renderProfessors(currentSubject?.professors)}
-              </div>
+          <div className="mt-4">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {currentSubject?.subject_name}
+            </h1>
+            <div className="text-muted-foreground mt-1 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              <span className="font-medium text-slate-700">Professors:</span>
+              {renderProfessors(currentSubject?.professors)}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search by ID or Name..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="text-sm text-slate-500">
-            Showing {filteredStudents.length} students
-          </div>
-        </div>
-
-        <Card>
+        <Card className="shadow-sm border-slate-200 overflow-hidden">
+          <CardHeader className="pb-4 border-b bg-slate-50/50">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Students List
+              </CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-slate-500 font-medium">
+                  Showing {filteredStudents.length} students
+                </div>
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search ID or Name..."
+                    className="pl-9 h-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-6 space-y-4">
@@ -169,20 +167,20 @@ export default function StudentsInSubjectPage() {
               </div>
             ) : filteredStudents.length === 0 ? (
               <EmptyState
-                icon={Users2}
+                icon={Users}
                 title="No students found"
                 description={searchTerm ? "Try a different search term." : "No students are currently enrolled in this subject."}
               />
             ) : (
-              <div className="rounded-md border-t overflow-hidden">
+              <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
-                      <TableHead>Student ID</TableHead>
-                      <TableHead>Student Name</TableHead>
-                      <TableHead className="text-center">Attendance</TableHead>
-                      <TableHead className="text-center">Absence</TableHead>
-                      <TableHead className="text-center">Late</TableHead>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-slate-50/50">
+                      <TableHead className="w-[180px] font-semibold">Student ID</TableHead>
+                      <TableHead className="font-semibold">Student Name</TableHead>
+                      <TableHead className="text-center font-semibold">Attendance</TableHead>
+                      <TableHead className="text-center font-semibold">Absence</TableHead>
+                      <TableHead className="text-center font-semibold">Late</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -190,7 +188,7 @@ export default function StudentsInSubjectPage() {
                       <TableRow
                         key={student.id}
                         className={cn(
-                          'cursor-pointer transition-colors',
+                          'cursor-pointer transition-colors border-b border-slate-100',
                           getAbsenceColorClass(student.highest_absence ?? 0)
                         )}
                         onClick={() => {
@@ -206,19 +204,19 @@ export default function StudentsInSubjectPage() {
                           });
                         }}
                       >
-                        <TableCell className="font-mono text-sm">
-                          {student.id}
+                        <TableCell className="font-mono font-medium text-blue-600">
+                          {student.student_id}
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-slate-900 whitespace-nowrap">
                           {student.name}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-green-700">
+                        <TableCell className="text-center font-bold text-green-600">
                           {student.attendance_count ?? 0}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-red-700">
+                        <TableCell className="text-center font-bold text-red-600">
                           {student.absence_count ?? 0}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-amber-700">
+                        <TableCell className="text-center font-bold text-amber-600">
                           {student.late_count ?? 0}
                         </TableCell>
                       </TableRow>
