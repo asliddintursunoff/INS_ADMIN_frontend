@@ -6,6 +6,7 @@ import { adminPanelService } from '@/services/adminPanelService';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useParams } from 'next/navigation';
 import { useState, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   Table,
   TableBody,
@@ -14,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Breadcrumb,
@@ -36,6 +37,7 @@ export default function StudentsInSubjectPage() {
   const subjectId = params.subjectId as string;
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const [selectedStudent, setSelectedStudent] = useState<{
     enrollmentId: string;
@@ -55,14 +57,13 @@ export default function StudentsInSubjectPage() {
     placeholderData: keepPreviousData,
   });
 
-
   const currentYear = years?.find((y) => y.id === stYearId);
   const currentSubject = response?.subject;
 
-  const filteredStudents = useMemo(() => {
+  const students = useMemo(() => {
     const list = Array.isArray(response?.students) ? response.students : [];
 
-    const mapped = list.map(student => {
+    return list.map(student => {
       const enrollments = Array.isArray(student.enrollments) ? student.enrollments : [];
       const attendance_count = enrollments.reduce((sum, e) => sum + (e.attendance || 0), 0);
       const absence_count = enrollments.reduce((sum, e) => sum + (e.absence || 0), 0);
@@ -79,21 +80,23 @@ export default function StudentsInSubjectPage() {
         highest_absence
       };
     });
+  }, [response]);
 
-    if (!searchTerm) return mapped;
+  const filteredStudents = useMemo(() => {
+    if (!debouncedSearchTerm) return students;
 
-    const s = searchTerm.toLowerCase();
-    return mapped.filter(st =>
+    const s = debouncedSearchTerm.toLowerCase();
+    return students.filter(st =>
       (st.student_id || "").toLowerCase().includes(s) ||
       (st.name || "").toLowerCase().includes(s)
     );
-  }, [response, searchTerm]);
+  }, [students, debouncedSearchTerm]);
 
   const getAbsenceColorClass = (highestAbsence: number) => {
     if (highestAbsence >= 7) return 'bg-red-50 hover:bg-red-100';
     if (highestAbsence >= 5) return 'bg-orange-50 hover:bg-orange-100';
     if (highestAbsence >= 3) return 'bg-yellow-50 hover:bg-yellow-100';
-    return '';
+    return 'hover:bg-slate-50';
   };
 
   const renderProfessors = (professors: string[] | undefined | null) => {
@@ -124,7 +127,7 @@ export default function StudentsInSubjectPage() {
           </Breadcrumb>
 
           <div className="mt-4">
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               {currentSubject?.subject_name}
             </h1>
             <div className="text-muted-foreground mt-1 flex items-center gap-2">
@@ -135,52 +138,48 @@ export default function StudentsInSubjectPage() {
           </div>
         </div>
 
-        <Card className="shadow-sm border-slate-200 overflow-hidden">
-          <CardHeader className="pb-4 border-b bg-slate-50/50">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
-                Students List
-              </CardTitle>
-              <div className="flex items-center gap-4">
-                <div className="text-sm text-slate-500 font-medium">
-                  Showing {filteredStudents.length} students
-                </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search ID or Name..."
-                    className="pl-9 h-9"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <Users className="w-4 h-4 text-blue-500" />
+            Showing {filteredStudents.length} students
+          </div>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search by ID or Name..."
+              className="pl-9 h-10 rounded-xl border-slate-200 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <Card className="rounded-xl border-slate-200 shadow-sm overflow-hidden bg-white">
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="p-6 space-y-4">
+              <div className="p-8 space-y-4">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
                 ))}
               </div>
             ) : filteredStudents.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                title="No students found"
-                description={searchTerm ? "Try a different search term." : "No students are currently enrolled in this subject."}
-              />
+              <div className="py-20">
+                <EmptyState
+                  icon={Users}
+                  title="No students found"
+                  description={searchTerm ? "Try a different search term." : "No students are currently enrolled in this subject."}
+                />
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent bg-slate-50/50">
-                      <TableHead className="w-[180px] font-semibold">Student ID</TableHead>
-                      <TableHead className="font-semibold">Student Name</TableHead>
-                      <TableHead className="text-center font-semibold">Attendance</TableHead>
-                      <TableHead className="text-center font-semibold">Absence</TableHead>
-                      <TableHead className="text-center font-semibold">Late</TableHead>
+                    <TableRow className="hover:bg-transparent bg-slate-50">
+                      <TableHead className="w-[180px] font-bold text-slate-700 h-12">Student ID</TableHead>
+                      <TableHead className="font-bold text-slate-700 h-12">Student Name</TableHead>
+                      <TableHead className="text-center font-bold text-slate-700 h-12">Attendance</TableHead>
+                      <TableHead className="text-center font-bold text-slate-700 h-12">Absence</TableHead>
+                      <TableHead className="text-center font-bold text-slate-700 h-12">Late</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -188,7 +187,7 @@ export default function StudentsInSubjectPage() {
                       <TableRow
                         key={student.id}
                         className={cn(
-                          'cursor-pointer transition-colors border-b border-slate-100',
+                          'cursor-pointer transition-colors border-b border-slate-100 h-14',
                           getAbsenceColorClass(student.highest_absence ?? 0)
                         )}
                         onClick={() => {
@@ -204,19 +203,19 @@ export default function StudentsInSubjectPage() {
                           });
                         }}
                       >
-                        <TableCell className="font-mono font-medium text-blue-600">
+                        <TableCell className="font-mono font-bold text-blue-600">
                           {student.student_id}
                         </TableCell>
-                        <TableCell className="font-medium text-slate-900 whitespace-nowrap">
+                        <TableCell className="font-semibold text-slate-900 whitespace-nowrap">
                           {student.name}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-green-600">
+                        <TableCell className="text-center font-black text-green-600">
                           {student.attendance_count ?? 0}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-red-600">
+                        <TableCell className="text-center font-black text-red-600">
                           {student.absence_count ?? 0}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-amber-600">
+                        <TableCell className="text-center font-black text-amber-500">
                           {student.late_count ?? 0}
                         </TableCell>
                       </TableRow>

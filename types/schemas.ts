@@ -40,7 +40,7 @@ export const SubjectSchema = z.object({
   professors: safeArray(ProfessorSchema),
 });
 
-// Students by Subject
+// Students by Subject endpoint
 export const AttendanceEnrollmentSchema = z.object({
   id: z.string(),
   attendance: z.number().catch(0),
@@ -68,7 +68,7 @@ export const StudentsBySubjectResponseSchema = z.object({
   students: safeArray(AttendanceStudentSchema),
 });
 
-// Student by Enrollment
+// Student by Enrollment endpoint
 export const ExactInfoSchema = z.object({
   id: z.string().optional(),
   date_of_week: z.string(),
